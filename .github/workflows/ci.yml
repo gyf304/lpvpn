@@ -58,13 +58,13 @@ jobs:
     - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-standalone
+        name: lpvpn-standalone-${{env.GENERATOR_PLATFORM}}
         path: build/MinSizeRel/lpvpn-standalone.exe
 
     - name: Upload Artifact (ZIP)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn
+        name: lpvpn-${{env.GENERATOR_PLATFORM}}
         path: |
           build/MinSizeRel/lpvpn.exe
           build/MinSizeRel/discord_game_sdk.dll

@@ -32,7 +32,7 @@ enum channel {
 
 bool operator<(const struct in_addr &a, const struct in_addr &b)
 {
-	return a.S_un.S_addr < b.S_un.S_addr;
+	return a.s_addr < b.s_addr;
 }
 
 void DiscordNet::run()
@@ -172,6 +172,11 @@ void DiscordNet::run()
 			activity.GetParty().GetSize().SetCurrentSize(memberCount);
 			am.UpdateActivity(activity, [](discord::Result result) {});
 		}
+	});
+
+	lm.OnLobbyDelete.Connect([&](discord::LobbyId lobbyId, discord::UserId userId) {
+		exception = std::runtime_error("Lobby disconnected.");
+		interrupted = true;
 	});
 
 	lm.OnMemberUpdate.Connect(updatePeer);
@@ -357,7 +362,9 @@ std::optional<cidr::CIDR> DiscordNet::getAddress() {
 }
 
 std::optional<std::exception> DiscordNet::getException() {
-	return exception;
+	auto e = exception;
+	exception.reset();
+	return e;
 }
 
 void DiscordNet::invite() {
