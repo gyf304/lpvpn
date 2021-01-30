@@ -55,8 +55,17 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
 
-    - name: Upload Artifact
+    - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-standalone.exe
+        name: lpvpn-standalone
         path: build/MinSizeRel/lpvpn-standalone.exe
+
+    - name: Upload Artifact (ZIP)
+      uses: actions/upload-artifact@v2
+      with:
+        name: lpvpn
+        path: |
+          build/MinSizeRel/lpvpn.exe
+          build/MinSizeRel/discord_game_sdk.dll
+          build/MinSizeRel/wintun.dll
