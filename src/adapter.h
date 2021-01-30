@@ -1,7 +1,7 @@
 #pragma once
 #include "cidr.h"
 
-namespace meshsocket::adapter {
+namespace lpvpn::adapter {
 	class Adapter {
 		std::shared_ptr<void> impl;
 	public:

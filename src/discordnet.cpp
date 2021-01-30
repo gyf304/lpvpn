@@ -11,11 +11,9 @@
 #include <set>
 
 #include "cidr.h"
-#include "main.h"
 
 #include "guidparse.h"
 #include "adapter.h"
-#include "bus.h"
 
 // wtf Microsoft?
 #ifdef SendMessage
@@ -24,7 +22,8 @@
 
 #include "discordnet.h"
 
-using namespace meshsocket;
+using namespace lpvpn;
+using namespace lpvpn::discordnet;
 
 enum channel {
 	data = 0,
@@ -36,16 +35,14 @@ bool operator<(const struct in_addr &a, const struct in_addr &b)
 	return a.S_un.S_addr < b.S_un.S_addr;
 }
 
-static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> adapter, std::atomic<bool> *interruptPtr)
+void DiscordNet::run()
 {
-	auto &interrupted = *interruptPtr;
-	auto bus = bus::Bus();
+	std::unique_ptr<lpvpn::adapter::Adapter> adapter = nullptr;
 
 	std::map<struct in_addr, discord::NetworkPeerId> ipMapping;
 	std::set<discord::NetworkPeerId> peers;
 
 	bool connected = false;
-	bool isHost = false;
 	cidr::CIDR currentAddr = hostCidr;
 
 	discord::NetworkPeerId peerId;
@@ -59,7 +56,7 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 	core.reset(_core);
 	if (!core)
 	{
-		bus.publish("error", "Cannot instantiate discord service");
+		exception = std::runtime_error("Cannot instantiate discord service");
 		interrupted = true;
 		return;
 	}
@@ -105,13 +102,13 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 		nm.OpenChannel(memberPeerId, channel::data, false);
 		nm.OpenChannel(memberPeerId, channel::aux,  true);
 
-		if (!isHost) {
+		if (!host) {
 			return;
 		}
 
 		// issue IP
 		auto auxData = std::string("ipv4 ") + cidr::format(currentAddr);
-		nm.SendMessage(memberPeerId, channel::aux, (uint8_t *)auxData.c_str(), auxData.size());
+		nm.SendMessage(memberPeerId, channel::aux, (uint8_t *)auxData.c_str(), (uint32_t)auxData.size());
 		nm.Flush();
 		currentAddr = currentAddr + 1;
 	};
@@ -136,13 +133,18 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 				auto addr = cidr::parse(auxData.substr(5).c_str());
 				try {
 					adapter->setIP(addr);
+					this->address = addr;
 				} catch (std::exception &e) {
-					bus.publish("error", "Cannot set IP on adapter: " + std::string(e.what()));
+					exception = std::runtime_error("Cannot set IP on adapter: " + std::string(e.what()));
 					interrupted = true;
 					return;
 				}
 			}
 		} else if (channelId == channel::data) {
+			if (adapter == nullptr) {
+				return;
+			}
+			receivedBytes += dataLength;
 			adapter->write(std::vector<uint8_t>(data, data + dataLength));
 		}
 	});
@@ -153,32 +155,22 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 	});
 
 	lm.OnMemberDisconnect.Connect([&](discord::LobbyId lobbyId, discord::UserId userId) {
-		if (isHost)
+		if (host)
 		{
 			int32_t memberCount = 0;
 			lm.MemberCount(lobby.GetId(), &memberCount);
 			activity.GetParty().GetSize().SetCurrentSize(memberCount);
 			am.UpdateActivity(activity, [](discord::Result result) {});
-			if (memberCount == 1) {
-				bus.publish("status", "Hosting a VPN (1 Member)");
-			} else {
-				bus.publish("status", "Hosting a VPN (" + std::to_string(memberCount) + " Members)");
-			}
 		}
 	});
 
 	lm.OnMemberConnect.Connect([&](discord::LobbyId lobbyId, discord::UserId userId) {
-		if (isHost)
+		if (host)
 		{
 			int32_t memberCount = 0;
 			lm.MemberCount(lobby.GetId(), &memberCount);
 			activity.GetParty().GetSize().SetCurrentSize(memberCount);
 			am.UpdateActivity(activity, [](discord::Result result) {});
-			if (memberCount == 1) {
-				bus.publish("status", "Hosting a VPN (1 Member)");
-			} else {
-				bus.publish("status", "Hosting a VPN (" + std::to_string(memberCount) + " Members)");
-			}
 		}
 	});
 
@@ -192,19 +184,19 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 	am.OnActivityJoin.Connect([&](discord::LobbySecret secret) {
 		if (connected)
 		{
-			bus.publish("warning", "Cannot join, already connected");
+			exception = std::runtime_error("Cannot join, already connected");
 			return; // return if already connected;
 		}
 		connected = true;
-		isHost = false;
 		lm.ConnectLobbyWithActivitySecret(secret, [&](discord::Result result, const discord::Lobby &l) {
 			if (result != discord::Result::Ok)
 			{
-				bus.publish("error", "Cannot connect to lobby");
+				exception = std::runtime_error("Cannot connect to lobby");
 				interrupted = true;
 				return;
 			}
 			lobby = l;
+			adapter = std::make_unique<lpvpn::adapter::Adapter>();
 
 			// connect to peers
 			int32_t count = 0;
@@ -224,26 +216,12 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 
 			activity.SetDetails("");
 			activity.SetState("Connected to a VPN");
-			bus.publish("status", "Connected");
+
 			am.UpdateActivity(activity, [&](discord::Result result) {});
 		});
 	});
 
-	bus.subscribe("host", [&](const std::string &msg) {
-		if (connected)
-		{
-			if (isHost)
-			{
-				// if already connected, just run invite.
-				om.OpenActivityInvite(discord::ActivityActionType::Join, [](discord::Result result) {});
-			}
-			else
-			{
-				bus.publish("warning", "You are already in a lobby.");
-			}
-			return;
-		}
-		// create lobby
+	if (host) {
 		discord::LobbyTransaction lobbyTx{};
 		lm.GetLobbyCreateTransaction(&lobbyTx);
 		lobbyTx.SetCapacity(8);
@@ -252,12 +230,12 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 			lobbyTx, [&](discord::Result result, discord::Lobby const &l) {
 				if (result != discord::Result::Ok)
 				{
-					bus.publish("error", "Cannot create lobby");
+					exception = std::runtime_error("Cannot create lobby");
 					interrupted = true;
 					return;
 				}
 				connected = true;
-				isHost = true;
+				adapter = std::make_unique<lpvpn::adapter::Adapter>();
 				lobby = l;
 
 				// self set peerId
@@ -274,35 +252,28 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 
 				activity.SetDetails("");
 				activity.SetState("Hosting a VPN");
-				bus.publish("status", "Hosting a VPN (1 Member)");
+				
 				activity.SetType(discord::ActivityType::Playing);
 				activity.GetParty().GetSize().SetMaxSize(lobby.GetCapacity());
 				activity.GetParty().GetSize().SetCurrentSize(memberCount);
 				activity.GetParty().SetId(std::to_string(lobby.GetId()).c_str());
 				activity.GetSecrets().SetJoin(activitySecret);
-				am.UpdateActivity(activity, [&](discord::Result result) {
-					om.OpenActivityInvite(discord::ActivityActionType::Join, [](discord::Result result) {});
-				});
+				am.UpdateActivity(activity, [&](discord::Result result) {});
 			});
-	});
-
-	bus.subscribe("invite", [&](const std::string &msg) {
-		if (!isHost || !connected)
-		{
-			bus.publish("warning", "You must be hosting a VPN to invite.");
-			return;
-		}
-		om.OpenActivityInvite(discord::ActivityActionType::Join, [](discord::Result result) {});
-	});
+	}
 
 	while (!interrupted)
 	{
-		bus.runCallbacks();
 		core->RunCallbacks();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-		if (!connected) {
+		if (!connected || adapter == nullptr) {
 			continue;
+		}
+
+		if (shouldInvite) {
+			shouldInvite = false;
+			om.OpenActivityInvite(discord::ActivityActionType::Join, [](discord::Result result) {});
 		}
 
 		// send packets
@@ -310,6 +281,7 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 		do
 		{
 			packet = adapter->read();
+			sentBytes += packet.size();
 			if (packet.size() < 20 || packet[0] >> 4 != 4)
 			{
 				// skip small and non IPv4 packets
@@ -353,13 +325,41 @@ static void discordMain(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> a
 	};
 }
 
-meshsocket::discordnet::DiscordNet::DiscordNet(cidr::CIDR hostCidr, std::unique_ptr<adapter::Adapter> adapter)
+DiscordNet::DiscordNet(cidr::CIDR hostCidr)
 {
-	thread = std::thread(discordMain, hostCidr, std::move(adapter), &interrupted);
+	this->hostCidr = hostCidr;
+	this->host = true;
+	thread = std::thread(&DiscordNet::run, this);
 }
 
-meshsocket::discordnet::DiscordNet::~DiscordNet()
+DiscordNet::DiscordNet()
+{
+	this->host = false;
+	thread = std::thread(&DiscordNet::run, this);
+}
+
+DiscordNet::~DiscordNet()
 {
 	interrupted = true;
 	thread.join();
+}
+
+size_t DiscordNet::getSentBytes() {
+	return sentBytes;
+}
+
+size_t DiscordNet::getReceivedBytes() {
+	return receivedBytes;
+}
+
+std::optional<cidr::CIDR> DiscordNet::getAddress() {
+	return address;
+}
+
+std::optional<std::exception> DiscordNet::getException() {
+	return exception;
+}
+
+void DiscordNet::invite() {
+	shouldInvite = true;
 }

@@ -29,11 +29,11 @@ if (NOT DiscordGameSDK_INCLUDE_DIR OR NOT DiscordGameSDK_LIBRARIES OR NOT Discor
 
 	if (WIN32)
 		message (STATUS "Using DiscordGameSDK library for Windows")
-		if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "AMD64")
+		if ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64")
 			set (DiscordGameSDK_LIBRARY "${DiscordGameSDK_SDKROOT}/lib/x86_64/discord_game_sdk.dll.lib")
 			set (DiscordGameSDK_LIBRARIES "${DiscordGameSDK_LIBRARY}")
 			set (DiscordGameSDK_REDISTRIBUTABLE "${DiscordGameSDK_SDKROOT}/lib/x86_64/discord_game_sdk.dll")
-		elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86")
+		elseif ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "win32")
 			set (DiscordGameSDK_LIBRARY "${DiscordGameSDK_SDKROOT}/lib/x86/discord_game_sdk.dll.lib")
 			set (DiscordGameSDK_LIBRARIES "${DiscordGameSDK_LIBRARY}")
 			set (DiscordGameSDK_REDISTRIBUTABLE "${DiscordGameSDK_SDKROOT}/lib/x86/discord_game_sdk.dll")
@@ -49,7 +49,6 @@ set_target_properties(DiscordGameSDK PROPERTIES IMPORTED_IMPLIB "${DiscordGameSD
 target_include_directories(DiscordGameSDK INTERFACE "${DiscordGameSDK_INCLUDE_DIR}")
 
 add_library(DiscordGameSDK_cpp STATIC ${DiscordGameSDK_CPP_SOURCES})
-set_target_properties(DiscordGameSDK_cpp PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tmp")
 target_link_libraries(DiscordGameSDK_cpp DiscordGameSDK)
 target_include_directories(DiscordGameSDK_cpp PUBLIC "${DiscordGameSDK_CPP_INCLUDE_DIR}")
 add_library(DiscordGameSDK::cpp ALIAS DiscordGameSDK_cpp)

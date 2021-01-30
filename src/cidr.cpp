@@ -12,23 +12,23 @@ struct in_addr CIDR::mask() const
 {
 	uint64_t mask = ~(((uint64_t)1 << (32 - maskBits)) - 1);
 	struct in_addr addr;
-	addr.S_un.S_addr = htonl((uint32_t)mask);
+	addr.s_addr = htonl((uint32_t)mask);
 	return addr;
 }
 
 bool cidr::operator==(const CIDR &a, const CIDR &b) {
-	return a.addr.S_un.S_addr == b.addr.S_un.S_addr && a.maskBits == b.maskBits;
+	return a.addr.s_addr == b.addr.s_addr && a.maskBits == b.maskBits;
 }
 
 CIDR cidr::operator+(const CIDR &cidr, int offset) {
 	CIDR result = cidr;
-	auto addr = ntohl(cidr.addr.S_un.S_addr);
-	auto mask = ntohl(cidr.mask().S_un.S_addr);
+	auto addr = ntohl(cidr.addr.s_addr);
+	auto mask = ntohl(cidr.mask().s_addr);
 	auto newaddr = addr + offset;
 	if ((addr & mask) != (newaddr & mask)) {
 		throw std::range_error("resultant CIDR out of range");
 	}
-	result.addr.S_un.S_addr = htonl(newaddr);
+	result.addr.s_addr = htonl(newaddr);
 	return result;
 }
 
@@ -40,9 +40,9 @@ CIDR cidr::parse(const char *addr) {
 		return cidr;
 	}
 	if (a > 255 || b > 255 || c > 255 || d > 255 || e > 32) {
-		return cidr;
+		throw std::range_error("Invalid IP Address");
 	}
-	cidr.addr.S_un.S_addr = htonl(a << 24 | b << 16 | c << 8 | d);
+	cidr.addr.s_addr = htonl(a << 24 | b << 16 | c << 8 | d);
 	cidr.maskBits = (uint8_t) e;
 	return cidr;
 }

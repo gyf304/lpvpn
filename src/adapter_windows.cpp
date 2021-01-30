@@ -7,7 +7,6 @@
 #include "wintunimpl.h"
 #include <netioapi.h>
 
-#include "main.h"
 #include "guidparse.h"
 
 #include "adapter.h"
@@ -16,9 +15,6 @@
 #include <atlcomcli.h>
 
 #pragma comment(lib, "IPHLPAPI.lib")
-
-#define UTF_CPP_CPLUSPLUS (201103L)
-#include <utf8.h>
 
 constexpr const GUID adapterGUID = guid_parse::make_guid("{F8D2D65B-7012-4602-805E-FD00529352D9}");
 
@@ -155,19 +151,19 @@ class WintunAdapter {
 
 };
 
-meshsocket::adapter::Adapter::Adapter() {
+lpvpn::adapter::Adapter::Adapter() {
 	this->impl = std::make_shared<WintunAdapter>();
 }
 
-std::vector<uint8_t> meshsocket::adapter::Adapter::read() {
+std::vector<uint8_t> lpvpn::adapter::Adapter::read() {
 	return std::static_pointer_cast<WintunAdapter>(impl)->read();
 }
 
-void meshsocket::adapter::Adapter::write(std::vector<uint8_t> &data) {
+void lpvpn::adapter::Adapter::write(std::vector<uint8_t> &data) {
 	std::static_pointer_cast<WintunAdapter>(impl)->write(data);
 }
 
-void meshsocket::adapter::Adapter::setIP(cidr::CIDR &addr) {
+void lpvpn::adapter::Adapter::setIP(cidr::CIDR &addr) {
 	std::static_pointer_cast<WintunAdapter>(impl)->setIP(addr);
 }
 
