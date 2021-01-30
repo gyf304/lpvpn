@@ -32,6 +32,13 @@ jobs:
       # We'll use this as our working directory for all subsequent commands
       run: cmake -E make_directory ${{github.workspace}}/build
 
+    - name: Cache Build
+      id: cache-build
+      uses: actions/cache@v2
+      with:
+        path: build
+        key: ${{runner.os}}-${{env.BUILD_TYPE}}-${{env.GENERATOR_PLATFORM}}
+
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
@@ -47,3 +54,9 @@ jobs:
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: lpvpn-standalone.exe
+        path: build/MinSizeRel/lpvpn-standalone.exe
