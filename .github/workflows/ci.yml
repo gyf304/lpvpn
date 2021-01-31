@@ -61,38 +61,54 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: lpvpn-${{runner.os}}-${{matrix.platform}}
+        path: |
+          build/${{env.BUILD_TYPE}}/lpvpn.exe
+          build/${{env.BUILD_TYPE}}/discord_game_sdk.dll
+          build/${{env.BUILD_TYPE}}/wintun.dll
+          build/${{env.BUILD_TYPE}}/LICENSE
+
     - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
         name: lpvpn-standalone-${{runner.os}}-${{matrix.platform}}
         path: |
-          build/MinSizeRel/lpvpn-standalone.exe
-          build/MinSizeRel/LICENSE
+          build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
+          build/${{env.BUILD_TYPE}}/LICENSE
 
-    - name: Upload Artifact (ZIP)
-      uses: actions/upload-artifact@v2
-      with:
-        name: lpvpn-${{runner.os}}-${{matrix.platform}}
-        path: |
-          build/MinSizeRel/lpvpn.exe
-          build/MinSizeRel/discord_game_sdk.dll
-          build/MinSizeRel/wintun.dll
-          build/MinSizeRel/LICENSE
-          
+    - name: Make ZIP
+      shell: bash
+      working-directory: ${{github.workspace}}/build/${{env.BUILD_TYPE}}
+      run: zip lpvpn.zip lpvpn.exe discord_game_sdk.dll wintun.dll LICENSE
+
     - name: Get Release Upload URL
       if: github.event_name == 'release'
       id: get_release
       uses: bruceadams/get-release@v1.2.2
       env:
-        GITHUB_TOKEN: ${{ github.token }}
-
+        GITHUB_TOKEN: ${{github.token}}
+        
     - name: Upload Release Asset
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1.0.2
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{github.token}}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: build/MinSizeRel/lpvpn-standalone.exe
+        asset_path: build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
+        asset_name: lpvpn-standalone-${{matrix.platform}}.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+
+    - name: Upload Release Asset (Standalone)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{github.token}}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
         asset_name: lpvpn-standalone-${{matrix.platform}}.exe
         asset_content_type: application/vnd.microsoft.portable-executable
