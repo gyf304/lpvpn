@@ -75,7 +75,7 @@ target_link_libraries(lpvpn
 	PRIVATE wxmono lpvpn::rc DiscordGameSDK::cpp Wintun
 )
 
-add_custom_target(lpvpn-zip 
+add_custom_target(lpvpn-zip ALL
 	COMMAND
 		${CMAKE_COMMAND} -E tar cfv lpvpn.zip --format=zip
 		discord_game_sdk.dll wintun.dll lpvpn.exe LICENSE
