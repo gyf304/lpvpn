@@ -43,6 +43,14 @@ add_custom_command(
 			$<TARGET_FILE_DIR:lpvpn>
 )
 
+# copy LICENSE
+add_custom_command(
+	TARGET lpvpn POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_SOURCE_DIR}/LICENSE"
+			$<TARGET_FILE_DIR:lpvpn>
+)
+
 # copy nsis resources
 file(GLOB_RECURSE NSIS_SOURCES  "${CMAKE_SOURCE_DIR}/nsis/*")
 foreach(NSIS_SOURCE ${NSIS_SOURCES})

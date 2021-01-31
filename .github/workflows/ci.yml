@@ -62,17 +62,17 @@ jobs:
     - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-standalone-${{matrix.os}}-${{matrix.platform}}
+        name: lpvpn-standalone-${{runner.os}}-${{matrix.platform}}
         path: |
           build/MinSizeRel/lpvpn-standalone.exe
-          LICENSE
+          build/MinSizeRel/LICENSE
 
     - name: Upload Artifact (ZIP)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-${{matrix.os}}-${{matrix.platform}}
+        name: lpvpn-${{runner.os}}-${{matrix.platform}}
         path: |
           build/MinSizeRel/lpvpn.exe
           build/MinSizeRel/discord_game_sdk.dll
           build/MinSizeRel/wintun.dll
-          LICENSE
+          build/MinSizeRel/LICENSE
