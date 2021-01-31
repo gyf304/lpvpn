@@ -7,6 +7,9 @@ LAN Party VPN (LPVPN) to the rescue! LPVPN allows you to create a VPN
 over Discord so you can set up a VPN in seconds. No installation
 required!
 
+![lpvpn-screenshot-1](./docs/screenshots/app.png)
+![lpvpn-screenshot-2](./docs/screenshots/invite.png)
+
 ## Usage
 
 Go to Releases and download one of the precompiled zip packages. Unzip

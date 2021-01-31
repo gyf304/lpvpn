@@ -76,12 +76,12 @@ enum
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_BUTTON(ID_HOST, MainFrame::OnHost)
-		EVT_BUTTON(ID_JOIN, MainFrame::OnJoin)
-			EVT_BUTTON(ID_INVITE, MainFrame::OnInvite)
-				EVT_TIMER(ID_SYNC_TIMER, MainFrame::OnTimer)
-					EVT_BUTTON(ID_TOGGLE_ADVANCED, MainFrame::OnToggleAdvanced)
-						wxEND_EVENT_TABLE()
-							wxIMPLEMENT_APP(App);
+	EVT_BUTTON(ID_JOIN, MainFrame::OnJoin)
+	EVT_BUTTON(ID_INVITE, MainFrame::OnInvite)
+	EVT_TIMER(ID_SYNC_TIMER, MainFrame::OnTimer)
+	EVT_BUTTON(ID_TOGGLE_ADVANCED, MainFrame::OnToggleAdvanced)
+	wxEND_EVENT_TABLE()
+wxIMPLEMENT_APP(App);
 
 auto fs = cmrc::lpvpn::get_filesystem();
 

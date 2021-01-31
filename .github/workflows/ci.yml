@@ -14,7 +14,6 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: MinSizeRel
-  GENERATOR_PLATFORM: x64
 
 jobs:
   build:
@@ -22,7 +21,11 @@ jobs:
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest]
+        platform: [x64, win32]
+      runs-on: ${{matrix.os}}
 
     steps:
     - uses: actions/checkout@v2
@@ -37,7 +40,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: build
-        key: ${{runner.os}}-${{env.BUILD_TYPE}}-${{env.GENERATOR_PLATFORM}}
+        key: ${{matrix.os}}-${{matrix.platform}}
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -47,7 +50,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A $GENERATOR_PLATFORM
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A $${{matrix.platform}}
 
     - name: Build
       working-directory: ${{github.workspace}}/build
@@ -58,14 +61,17 @@ jobs:
     - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-standalone-${{env.GENERATOR_PLATFORM}}
-        path: build/MinSizeRel/lpvpn-standalone.exe
+        name: lpvpn-standalone-${{matrix.os}}-${{matrix.platform}}
+        path: |
+          build/MinSizeRel/lpvpn-standalone.exe
+          LICENSE
 
     - name: Upload Artifact (ZIP)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-${{env.GENERATOR_PLATFORM}}
+        name: lpvpn-${{matrix.os}}-${{matrix.platform}}
         path: |
           build/MinSizeRel/lpvpn.exe
           build/MinSizeRel/discord_game_sdk.dll
           build/MinSizeRel/wintun.dll
+          LICENSE
