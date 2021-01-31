@@ -36,7 +36,7 @@ jobs:
     - name: Set Build Variables
       shell: bash
       run: |
-        [ "" ] && echo "CMAKE_GENERATOR=\"Visual Studio 16 2019\"" >>${GITHUB_ENV} || true
+        [ "${{matrix.os}}" == windows ] && echo "CMAKE_GENERATOR=\"Visual Studio 16 2019\"" >>${GITHUB_ENV} || true
         [ "${{matrix.os}}" == windows ] && [ "${{matrix.arch}}" == "x86"    ] && echo "CMAKE_GENERATOR_PLATFORM=win32" >>${GITHUB_ENV} || true
         [ "${{matrix.os}}" == windows ] && [ "${{matrix.arch}}" == "x86_64" ] && echo "CMAKE_GENERATOR_PLATFORM=x64"   >>${GITHUB_ENV} || true
 
