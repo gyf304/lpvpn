@@ -1,7 +1,7 @@
 # LAN Party VPN - VPN for Virtual LAN Parties
 
-Have you ever wanted to play a classic game with your friends but is
-not able to because you or your friends can get a LAN or VPN set up?
+Have you ever wanted to play a classic game with your friends but not
+able to because you or your friends cannot get a LAN or VPN set up?
 
 LAN Party VPN (LPVPN) to the rescue! LPVPN allows you to create a VPN
 over Discord so you can set up a VPN in seconds. No installation
