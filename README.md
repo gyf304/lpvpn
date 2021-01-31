@@ -8,6 +8,7 @@ over Discord so you can set up a VPN in seconds. No installation
 required!
 
 ![lpvpn-screenshot-1](./docs/screenshots/app.png)
+
 ![lpvpn-screenshot-2](./docs/screenshots/invite.png)
 
 ## Usage

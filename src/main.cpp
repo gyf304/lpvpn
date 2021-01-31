@@ -87,6 +87,14 @@ auto fs = cmrc::lpvpn::get_filesystem();
 
 bool App::OnInit()
 {
+#if defined(_WIN32)
+	BOOL isWow64 = false;
+	IsWow64Process(GetCurrentProcess(), &isWow64);
+	if (isWow64) {
+		wxMessageBox("You must run the 64 bit version on a 64 bit OS.", "Error", wxOK | wxICON_ERROR);
+		return false;
+	}
+#endif
 	wxImage::AddHandler(new wxPNGHandler());
 	MainFrame *frame = new MainFrame();
 	frame->Show(true);
