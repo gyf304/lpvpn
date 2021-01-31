@@ -7,6 +7,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  release:
+    types: [ created ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -76,3 +78,21 @@ jobs:
           build/MinSizeRel/discord_game_sdk.dll
           build/MinSizeRel/wintun.dll
           build/MinSizeRel/LICENSE
+          
+    - name: Get Release Upload URL
+      if: github.event_name == 'release'
+      id: get_release
+      uses: bruceadams/get-release@v1.2.2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Upload Release Asset
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: build/MinSizeRel/lpvpn-standalone.exe
+        asset_name: lpvpn-standalone-${{matrix.platform}}.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
