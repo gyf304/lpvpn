@@ -25,13 +25,20 @@ jobs:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     strategy:
       matrix:
-        os: [windows-latest]
-        platform: [x64, win32]
+        os: [windows]
+        arch: [x86, x86_64]
 
-    runs-on: ${{matrix.os}}
+    runs-on: ${{matrix.os}}-latest
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Set Build Variables
+      shell: bash
+      run: |
+        [ "${{matrix.os}}" == windows ] && echo "CMAKE_GENERATOR=\"Visual Studio 16 2019\"" >>${GITHUB_ENV} || true
+        [ "${{matrix.os}}" == windows ] && [ "${{matrix.arch}}" == "x86"    ] && echo "CMAKE_GENERATOR_PLATFORM=win32" >>${GITHUB_ENV} || true
+        [ "${{matrix.os}}" == windows ] && [ "${{matrix.arch}}" == "x86_64" ] && echo "CMAKE_GENERATOR_PLATFORM=x64"   >>${GITHUB_ENV} || true
 
     - name: Create Build Environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -43,7 +50,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: build
-        key: ${{matrix.os}}-${{matrix.platform}}
+        key: ${{matrix.os}}-${{matrix.arch}}
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -53,7 +60,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -A ${{matrix.platform}}
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Build
       working-directory: ${{github.workspace}}/build
@@ -61,38 +68,49 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
 
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: lpvpn-${{matrix.os}}-${{matrix.arch}}
+        path: |
+          build/${{env.BUILD_TYPE}}/lpvpn.exe
+          build/${{env.BUILD_TYPE}}/discord_game_sdk.dll
+          build/${{env.BUILD_TYPE}}/wintun.dll
+          build/${{env.BUILD_TYPE}}/LICENSE
+
     - name: Upload Artifact (Standalone)
       uses: actions/upload-artifact@v2
       with:
-        name: lpvpn-standalone-${{runner.os}}-${{matrix.platform}}
+        name: lpvpn-standalone-${{matrix.os}}-${{matrix.arch}}
         path: |
-          build/MinSizeRel/lpvpn-standalone.exe
-          build/MinSizeRel/LICENSE
+          build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
+          build/${{env.BUILD_TYPE}}/LICENSE
 
-    - name: Upload Artifact (ZIP)
-      uses: actions/upload-artifact@v2
-      with:
-        name: lpvpn-${{runner.os}}-${{matrix.platform}}
-        path: |
-          build/MinSizeRel/lpvpn.exe
-          build/MinSizeRel/discord_game_sdk.dll
-          build/MinSizeRel/wintun.dll
-          build/MinSizeRel/LICENSE
-          
     - name: Get Release Upload URL
       if: github.event_name == 'release'
       id: get_release
       uses: bruceadams/get-release@v1.2.2
       env:
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{github.token}}
 
-    - name: Upload Release Asset
+    - name: Upload Release Asset (ZIP)
       if: github.event_name == 'release'
       uses: actions/upload-release-asset@v1.0.2
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{github.token}}
       with:
         upload_url: ${{ steps.get_release.outputs.upload_url }}
-        asset_path: build/MinSizeRel/lpvpn-standalone.exe
-        asset_name: lpvpn-standalone-${{matrix.platform}}.exe
+        asset_path: build/${{env.BUILD_TYPE}}/lpvpn.zip
+        asset_name: lpvpn-${{matrix.os}}-${{matrix.arch}}.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (Standalone)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{github.token}}
+      with:
+        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        asset_path: build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
+        asset_name: lpvpn-standalone-${{matrix.os}}-${{matrix.arch}}.exe
         asset_content_type: application/vnd.microsoft.portable-executable
