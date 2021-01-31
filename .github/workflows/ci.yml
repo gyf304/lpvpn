@@ -25,7 +25,8 @@ jobs:
       matrix:
         os: [windows-latest]
         platform: [x64, win32]
-      runs-on: ${{matrix.os}}
+
+    runs-on: ${{matrix.os}}
 
     steps:
     - uses: actions/checkout@v2
