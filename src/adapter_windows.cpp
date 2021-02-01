@@ -44,7 +44,7 @@ void setCategory()
 		{
 			BSTR name = NULL;
 			pNetwork->GetName(&name);
-			if (wcscmp(name, L"meshSocket") == 0) {
+			if (wcscmp(name, L"LAN Party VPN") == 0) {
 				pNetwork->SetCategory(NLM_NETWORK_CATEGORY_PRIVATE);
 			}
 				
@@ -69,10 +69,12 @@ class WintunAdapter {
 		wintun = InitializeWintun();
 		GUID guid = {};
 		BOOL rebootRequired = false;
-		adapterHandle = WintunOpenAdapter(L"meshSocket", L"meshSocket");
-		if (!adapterHandle) {
-			adapterHandle = WintunCreateAdapter(L"meshSocket", L"meshSocket", &adapterGUID, &rebootRequired);
+		adapterHandle = WintunOpenAdapter(L"LAN Party VPN", L"LAN Party VPN");
+		if (adapterHandle) {
+			// always close existing adapter to clear IP addresses associated.
+			WintunDeleteAdapter(adapterHandle, true, &rebootRequired);
 		}
+		adapterHandle = WintunCreateAdapter(L"LAN Party VPN", L"LAN Party VPN", &adapterGUID, &rebootRequired);
 		if (!adapterHandle) {
 			throw std::runtime_error("Cannot Create Adapter");
 		}
