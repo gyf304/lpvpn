@@ -56,7 +56,9 @@ void DiscordNet::run()
 	core.reset(_core);
 	if (!core)
 	{
+		mutex.lock();
 		exception = std::runtime_error("Cannot instantiate discord service");
+		mutex.unlock();
 		interrupted = true;
 		return;
 	}
@@ -109,7 +111,6 @@ void DiscordNet::run()
 		// issue IP
 		auto auxData = std::string("ipv4 ") + cidr::format(currentAddr);
 		nm.SendMessage(memberPeerId, channel::aux, (uint8_t *)auxData.c_str(), (uint32_t)auxData.size());
-		nm.Flush();
 		currentAddr = currentAddr + 1;
 	};
 
@@ -189,7 +190,9 @@ void DiscordNet::run()
 	am.OnActivityJoin.Connect([&](discord::LobbySecret secret) {
 		if (connected)
 		{
-			exception = std::runtime_error("Cannot join, already connected");
+			mutex.lock();
+			message = "Cannot join, already connected";
+			mutex.unlock();
 			return; // return if already connected;
 		}
 		connected = true;
@@ -358,13 +361,26 @@ size_t DiscordNet::getReceivedBytes() {
 }
 
 std::optional<cidr::CIDR> DiscordNet::getAddress() {
-	return address;
+	mutex.lock();
+	auto a = address;
+	mutex.unlock();
+	return a;
 }
 
 std::optional<std::exception> DiscordNet::getException() {
+	mutex.lock();
 	auto e = exception;
+	mutex.unlock();
 	exception.reset();
 	return e;
+}
+
+std::optional<std::string> DiscordNet::getMessage() {
+	mutex.lock();
+	auto m = message;
+	mutex.unlock();
+	message.reset();
+	return m;
 }
 
 void DiscordNet::invite() {

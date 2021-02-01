@@ -114,6 +114,11 @@ void MainFrame::OnTimer(wxTimerEvent &event)
 		this->Close();
 		return;
 	}
+	auto message = discordnet->getMessage();
+	if (message.has_value())
+	{
+		wxMessageBox(message.value(), "Message", wxOK | wxICON_INFORMATION);
+	}
 	auto ip = discordnet->getAddress();
 	auto receivedBytes = discordnet->getReceivedBytes();
 	auto sentBytes = discordnet->getSentBytes();

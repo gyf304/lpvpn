@@ -46,11 +46,12 @@ class DiscordNet {
 	cidr::CIDR hostCidr;
 	std::optional<cidr::CIDR> address;
 	std::optional<std::exception> exception;
+	std::optional<std::string> message;
 
 	bool host;
 	bool shouldInvite = false;
-	size_t sentBytes = 0;
-	size_t receivedBytes = 0;
+	std::atomic<uint64_t> sentBytes = 0;
+	std::atomic<uint64_t> receivedBytes = 0;
 
 	void run();
 public:
@@ -63,6 +64,7 @@ public:
 
 	std::optional<cidr::CIDR> getAddress();
 	std::optional<std::exception> getException();
+	std::optional<std::string> getMessage();
 
 	void invite();
 };
