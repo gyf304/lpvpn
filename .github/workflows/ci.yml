@@ -99,9 +99,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{github.token}}
       with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        upload_url: ${{steps.get_release.outputs.upload_url}}
         asset_path: build/${{env.BUILD_TYPE}}/lpvpn.zip
-        asset_name: lpvpn-${{matrix.os}}-${{matrix.arch}}.zip
+        asset_name: lpvpn-${{steps.get_release.outputs.tag_name}}-${{matrix.os}}-${{matrix.arch}}.zip
         asset_content_type: application/zip
 
     - name: Upload Release Asset (Standalone)
@@ -110,7 +110,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{github.token}}
       with:
-        upload_url: ${{ steps.get_release.outputs.upload_url }}
+        upload_url: ${{steps.get_release.outputs.upload_url}}
         asset_path: build/${{env.BUILD_TYPE}}/lpvpn-standalone.exe
-        asset_name: lpvpn-standalone-${{matrix.os}}-${{matrix.arch}}.exe
+        asset_name: lpvpn-${{steps.get_release.outputs.tag_name}}-standalone-${{matrix.os}}-${{matrix.arch}}.exe
         asset_content_type: application/vnd.microsoft.portable-executable
