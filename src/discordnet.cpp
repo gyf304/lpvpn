@@ -52,16 +52,15 @@ void DiscordNet::run()
 	discord::User user;
 	discord::Core *_core{};
 	std::shared_ptr<discord::Core> core;
-	auto result = discord::Core::Create(DISCORD_APP_ID, DiscordCreateFlags_Default, &_core);
-	core.reset(_core);
-	if (!core)
-	{
+	auto result = discord::Core::Create(DISCORD_APP_ID, DiscordCreateFlags_NoRequireDiscord, &_core);
+	if (result != discord::Result::Ok) {
 		mutex.lock();
-		exception = std::runtime_error("Cannot instantiate discord service");
+		exception = std::runtime_error("Cannot instantiate discord service. Make sure discord is running.");
 		mutex.unlock();
 		interrupted = true;
 		return;
 	}
+	core.reset(_core);
 
 	auto &lm = core->LobbyManager();
 	auto &um = core->UserManager();
