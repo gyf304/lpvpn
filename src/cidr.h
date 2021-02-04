@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <winsock2.h>
-#include <ws2ipdef.h>
 
 namespace cidr {
 	struct CIDR {

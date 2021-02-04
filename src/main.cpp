@@ -3,9 +3,7 @@
 
 #include <wx/wx.h>
 
-#include <cmrc/cmrc.hpp>
-CMRC_DECLARE(lpvpn);
-
+#include "rc.h"
 #include "guidparse.h"
 #include "adapter.h"
 #include "discordnet.h"
@@ -83,8 +81,6 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	wxEND_EVENT_TABLE()
 wxIMPLEMENT_APP(App);
 
-auto fs = cmrc::lpvpn::get_filesystem();
-
 bool App::OnInit()
 {
 #if defined(_WIN32)
@@ -131,10 +127,9 @@ void MainFrame::OnTimer(wxTimerEvent &event)
 }
 
 MainFrame::MainFrame()
-	: wxFrame(NULL, wxID_ANY, "LP VPN", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX))
+	: wxFrame(NULL, wxID_ANY, "LP VPN", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxICON_NONE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX ))
 {
-	// this->SetIcon();
-	auto iconPng = fs.open("icon.png");
+	auto iconPng = lpvpn::fs.open("icon.png");
 	auto iconBitmap = wxBitmap::NewFromPNGData(iconPng.begin(), iconPng.size()).ConvertToImage().Scale(64, 64);
 	auto icon = wxIcon();
 	icon.CopyFromBitmap(iconBitmap);
@@ -219,9 +214,9 @@ HostJoinSelectPanel::HostJoinSelectPanel(wxWindow *parent)
 	this->SetPosition(wxPoint(0, 0));
 	this->SetClientSize(wxSize(w, h));
 
-	auto hostButtonDefaultPng = fs.open("btn-host-default.png");
+	auto hostButtonDefaultPng = lpvpn::fs.open("btn-host-default.png");
 	auto hostButtonDefaultImage = wxBitmap::NewFromPNGData(hostButtonDefaultPng.begin(), hostButtonDefaultPng.size()).ConvertToImage().Scale(64, 64);
-	auto hostButtonHoverPng = fs.open("btn-host-hover.png");
+	auto hostButtonHoverPng = lpvpn::fs.open("btn-host-hover.png");
 	auto hostButtonHoverImage = wxBitmap::NewFromPNGData(hostButtonHoverPng.begin(), hostButtonHoverPng.size()).ConvertToImage().Scale(64, 64);
 	wxButton *hostButton = new wxButton(this, ID_HOST, "Host VPN", wxPoint(w / 4 - buttonW / 2, h / 2 - buttonH / 2), wxSize(buttonW, buttonH), wxBORDER_NONE);
 	hostButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
@@ -229,9 +224,9 @@ HostJoinSelectPanel::HostJoinSelectPanel(wxWindow *parent)
 	hostButton->SetBitmap(hostButtonDefaultImage, wxTOP);
 	hostButton->SetBitmapHover(hostButtonHoverImage);
 
-	auto joinButtonDefaultPng = fs.open("btn-join-default.png");
+	auto joinButtonDefaultPng = lpvpn::fs.open("btn-join-default.png");
 	auto joinButtonDefaultImage = wxBitmap::NewFromPNGData(joinButtonDefaultPng.begin(), joinButtonDefaultPng.size()).ConvertToImage().Scale(64, 64);
-	auto joinButtonHoverPng = fs.open("btn-join-hover.png");
+	auto joinButtonHoverPng = lpvpn::fs.open("btn-join-hover.png");
 	auto joinButtonHoverImage = wxBitmap::NewFromPNGData(joinButtonHoverPng.begin(), joinButtonHoverPng.size()).ConvertToImage().Scale(64, 64);
 	wxButton *joinButton = new wxButton(this, ID_JOIN, "Join VPN", wxPoint(w / 4 * 3 - buttonW / 2, h / 2 - buttonH / 2), wxSize(buttonW, buttonH), wxBORDER_NONE);
 	joinButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));

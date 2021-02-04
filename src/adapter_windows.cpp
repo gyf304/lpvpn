@@ -4,17 +4,18 @@
 #include <list>
 #include <vector>
 
-#include "wintunimpl.h"
-#include <netioapi.h>
-
-#include "guidparse.h"
-
 #include "adapter.h"
+
+#include <iphlpapi.h>
+#pragma comment(lib, "IPHLPAPI.lib")
 
 #include <netlistmgr.h>
 #include <atlcomcli.h>
 
-#pragma comment(lib, "IPHLPAPI.lib")
+#include "guidparse.h"
+#include "wintunshim.h"
+
+#include <iostream>
 
 constexpr const GUID adapterGUID = guid_parse::make_guid("{F8D2D65B-7012-4602-805E-FD00529352D9}");
 
@@ -69,6 +70,7 @@ class WintunAdapter {
 		wintun = InitializeWintun();
 		GUID guid = {};
 		BOOL rebootRequired = false;
+		std::cerr << WintunOpenAdapter << std::endl;
 		adapterHandle = WintunOpenAdapter(L"LAN Party VPN", L"LAN Party VPN");
 		if (adapterHandle) {
 			// always close existing adapter to clear IP addresses associated.

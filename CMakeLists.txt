@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(lpvpn)
 
+message(STATUS "Platform: ${PLATFORM}")
 message(STATUS "Generator Platform: ${CMAKE_GENERATOR_PLATFORM}")
 
 set(DISCORD_APP_ID 801910914370240553)
@@ -16,51 +17,22 @@ include(cmake/discord.cmake)
 include(cmake/wintun.cmake)
 include(cmake/wxWidgets.cmake)
 include(cmake/CMakeRC.cmake)
+include(cmake/MemoryModule.cmake)
 
 if (WIN32)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif()
 
+
+file(GLOB_RECURSE RESOURCES RELATIVE ${CMAKE_SOURCE_DIR} "resources/cmrc/*")
+cmrc_add_resource_library(lpvpn-resources ALIAS lpvpn::rc NAMESPACE lpvpn)
+cmrc_add_resources(lpvpn-resources WHENCE resources/cmrc ${RESOURCES})
+cmrc_add_resources(lpvpn-resources WHENCE ${DiscordGameSDK_REDISTRIBUTABLE_DIR} ${DiscordGameSDK_REDISTRIBUTABLE})
+cmrc_add_resources(lpvpn-resources WHENCE ${Wintun_REDISTRIBUTABLE_DIR} ${Wintun_REDISTRIBUTABLE})
+
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
-add_executable(lpvpn ${SOURCES})
-
-file(GLOB_RECURSE RESOURCES RELATIVE ${CMAKE_SOURCE_DIR} "resources/*")
-cmrc_add_resource_library(lpvpn-resources ALIAS lpvpn::rc NAMESPACE lpvpn WHENCE resources ${RESOURCES})
-
-# copy discord SDK dll
-add_custom_command(
-	TARGET lpvpn POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${DiscordGameSDK_REDISTRIBUTABLE}
-			$<TARGET_FILE_DIR:lpvpn>
-)
-
-# copy Wintun dll
-add_custom_command(
-	TARGET lpvpn POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${Wintun_REDISTRIBUTABLE}
-			$<TARGET_FILE_DIR:lpvpn>
-)
-
-# copy LICENSE
-add_custom_command(
-	TARGET lpvpn POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			"${CMAKE_SOURCE_DIR}/LICENSE"
-			$<TARGET_FILE_DIR:lpvpn>
-)
-
-# copy nsis resources
-file(GLOB_RECURSE NSIS_SOURCES  "${CMAKE_SOURCE_DIR}/nsis/*")
-foreach(NSIS_SOURCE ${NSIS_SOURCES})
-	add_custom_command(
-		TARGET lpvpn POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				${NSIS_SOURCE}
-				$<TARGET_FILE_DIR:lpvpn>
-	)
-endforeach(NSIS_SOURCE)
+add_executable(lpvpn ${SOURCES} ${DiscordGameSDK_CPP_SOURCES} resources/windows/app.rc)
+target_include_directories(lpvpn PRIVATE ${DiscordGameSDK_CPP_INCLUDE_DIR})
 
 target_compile_definitions(
 	lpvpn PUBLIC
@@ -71,20 +43,12 @@ if (WIN32)
 	set_target_properties(lpvpn PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" /SUBSYSTEM:WINDOWS")
 endif()
 
-target_link_libraries(lpvpn 
-	PRIVATE wxmono lpvpn::rc DiscordGameSDK::cpp Wintun
-)
+target_link_libraries(lpvpn PRIVATE wxmono lpvpn::rc Wintun DiscordGameSDK MemoryModule)
 
-add_custom_target(lpvpn-zip ALL
-	COMMAND
-		${CMAKE_COMMAND} -E tar cfv lpvpn.zip --format=zip
-		discord_game_sdk.dll wintun.dll lpvpn.exe LICENSE
-	WORKING_DIRECTORY $<TARGET_FILE_DIR:lpvpn>
-	DEPENDS lpvpn
-)
-
-add_custom_target(lpvpn-standalone ALL
-	COMMAND makensis lpvpn-standalone.nsi
-	WORKING_DIRECTORY $<TARGET_FILE_DIR:lpvpn>
-	DEPENDS lpvpn
+# copy LICENSE
+add_custom_command(
+	TARGET lpvpn POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_SOURCE_DIR}/LICENSE"
+			$<TARGET_FILE_DIR:lpvpn>
 )
