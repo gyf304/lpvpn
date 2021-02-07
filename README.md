@@ -1,3 +1,6 @@
+![github-download-count](https://img.shields.io/github/v/release/gyf304/lpvpn)
+![github-latest-release](https://img.shields.io/github/downloads/gyf304/lpvpn/total.svg)
+
 # LAN Party VPN - VPN for Virtual LAN Parties
 
 Have you ever wanted to play a classic game with your friends but not
@@ -32,6 +35,6 @@ will be disconnected once you close the Application.
 
 Open a PR to add more supported games to the list.
 
-  * Minecraft
-  * SWAT 4
-  * ARMA 3
+* Minecraft
+* SWAT 4
+* ARMA 3
