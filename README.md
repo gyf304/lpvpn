@@ -1,5 +1,5 @@
-![github-download-count](https://img.shields.io/github/v/release/gyf304/lpvpn)
-![github-latest-release](https://img.shields.io/github/downloads/gyf304/lpvpn/total.svg)
+[![github-download-count](https://img.shields.io/github/v/release/gyf304/lpvpn)](../../releases)
+[![github-latest-release](https://img.shields.io/github/downloads/gyf304/lpvpn/total.svg)](../../releases)
 
 # LAN Party VPN - VPN for Virtual LAN Parties
 
