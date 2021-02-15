@@ -38,3 +38,4 @@ Open a PR to add more supported games to the list.
 * Minecraft
 * SWAT 4
 * ARMA 3
+* Stardew Valley
