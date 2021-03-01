@@ -2,7 +2,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     Wintun
-    URL https://www.wintun.net/builds/wintun-0.10.zip
+    URL https://www.wintun.net/builds/wintun-0.10.2.zip
 )
 
 FetchContent_GetProperties(Wintun)
