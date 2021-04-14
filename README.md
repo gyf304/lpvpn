@@ -19,16 +19,16 @@ required!
 
 ## Usage
 
-Go to Releases and download one of the precompiled exes. For most
-people this should be the `x86_64` version. Run the downloaded file.
+1. Go to [Releases](https://github.com/gyf304/lpvpn/releases)
+   and download one of the precompiled exes. 
+   For most people this should be the `x86_64` version.
+   Run the downloaded file. Ask your friends to do the same.
 
-Ask your friends to do the same.
+2. **For Host (Yourself):** Click `Host`, **For Clients (Your friends on Discord):** Click `Join`.
 
-Click on `Host` to host a VPN. Click `Invite` to invite friends on
-Discord. Use your Discord client to select which users to invite.
-
-For your friends: click `Join` instead and accept the invitation in
-Discord.
+3. **For Host (Yourself):** Click `Invite` to invite friends on Discord.
+   Use your Discord client to select which users to invite.
+   **For Clients (Your friends on Discord):** Accept the invitation in Discord.
 
 You are good to go! Your IP address will be shown in the UI. The VPN
 will be disconnected once you close the Application.
