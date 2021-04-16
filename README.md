@@ -35,6 +35,8 @@ will be disconnected once you close the Application.
 
 ## Known Supported Games
 
+Most LAN-capable games should already be supported.
+The list shows the ones tested and known to work.
 Open a PR to add more supported games to the list.
 
 * Minecraft
