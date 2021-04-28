@@ -43,3 +43,4 @@ Open a PR to add more supported games to the list.
 * SWAT 4
 * ARMA 3
 * Stardew Valley
+* FlatOut 2
