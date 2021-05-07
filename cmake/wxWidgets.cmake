@@ -11,4 +11,5 @@ endif()
 
 set(wxBUILD_MONOLITHIC ON CACHE INTERNAL "")
 set(wxBUILD_SHARED OFF CACHE INTERNAL "")
+set(wxBUILD_USE_STATIC_RUNTIME ON CACHE INTERNAL "")
 add_subdirectory("${wxwidgets_SOURCE_DIR}")
