@@ -44,3 +44,4 @@ Open a PR to add more supported games to the list.
 * ARMA 3
 * Stardew Valley
 * FlatOut 2
+* Diablo 1 (GOG Edition)
