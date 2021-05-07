@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.16)
 
 project(lpvpn)
 
@@ -40,7 +40,10 @@ target_compile_definitions(
 )
 
 if (WIN32)
-	set_target_properties(lpvpn PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" /SUBSYSTEM:WINDOWS")
+	set_target_properties(lpvpn PROPERTIES
+		LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" /SUBSYSTEM:WINDOWS"
+		MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+	)
 endif()
 
 target_link_libraries(lpvpn PRIVATE wxmono lpvpn::rc Wintun DiscordGameSDK MemoryModule)
