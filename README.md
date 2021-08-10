@@ -39,9 +39,10 @@ Most LAN-capable games should already be supported.
 The list shows the ones tested and known to work.
 Open a PR to add more supported games to the list.
 
-* Minecraft
-* SWAT 4
 * ARMA 3
-* Stardew Valley
-* FlatOut 2
 * Diablo 1 (GOG Edition)
+* Factorio
+* FlatOut 2
+* Minecraft
+* Stardew Valley
+* SWAT 4
