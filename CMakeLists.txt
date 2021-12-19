@@ -7,11 +7,18 @@ message(STATUS "Generator Platform: ${CMAKE_GENERATOR_PLATFORM}")
 
 set(DISCORD_APP_ID 801910914370240553)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 include(FetchContent)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tmp")
+if (NOT DEFINED BINARY_PLATFORM)
+	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set (BINARY_PLATFORM "x64")
+	elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set (BINARY_PLATFORM "win32")
+	endif()
+endif()
 
 include(cmake/discord.cmake)
 include(cmake/wintun.cmake)
