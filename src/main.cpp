@@ -19,34 +19,32 @@ static int nextY(wxWindow *w, int inc)
 	return w->GetPosition().y + w->GetSize().GetHeight() + inc;
 }
 
-class HostJoinSelectPanel : public wxPanel
-{
-public:
-	HostJoinSelectPanel(wxWindow *parent);
-	wxButton *advancedSettingsButton;
-	wxTextCtrl *hostIpCidrInput;
-	int expandedH;
-};
 
 class NetworkPanel : public wxPanel
 {
 public:
-	NetworkPanel(wxWindow *parent, bool host);
+	NetworkPanel(wxWindow *parent);
 	wxStaticText *ipLabel;
 	wxStaticText *sentBytesLabel;
 	wxStaticText *receivedBytesLabel;
+	wxButton* advancedSettingsButton;
+	wxTextCtrl* hostIpCidrInput;
+	wxButton* inviteButton;
+	wxButton* hostButton;
+	wxButton* leaveButton;
+	int expandedH;
 };
 
 class MainFrame : public wxFrame
 {
 public:
 	MainFrame();
-	HostJoinSelectPanel *hostJoinSelectPanel;
 	NetworkPanel *hostPanel;
 
 private:
 	void OnHost(wxCommandEvent &event);
 	void OnJoin(wxCommandEvent &event);
+	void OnLeave(wxCommandEvent& event);
 	void OnToggleAdvanced(wxCommandEvent &event);
 	void OnInvite(wxCommandEvent &event);
 	void OnTimer(wxTimerEvent &event);
@@ -68,6 +66,7 @@ enum
 	ID_HOST = 1,
 	ID_JOIN,
 	ID_INVITE,
+	ID_LEAVE,
 	ID_SYNC_TIMER,
 	ID_TOGGLE_ADVANCED
 };
@@ -76,6 +75,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 	EVT_BUTTON(ID_HOST, MainFrame::OnHost)
 	EVT_BUTTON(ID_JOIN, MainFrame::OnJoin)
 	EVT_BUTTON(ID_INVITE, MainFrame::OnInvite)
+	EVT_BUTTON(ID_LEAVE, MainFrame::OnLeave)
 	EVT_TIMER(ID_SYNC_TIMER, MainFrame::OnTimer)
 	EVT_BUTTON(ID_TOGGLE_ADVANCED, MainFrame::OnToggleAdvanced)
 	wxEND_EVENT_TABLE()
@@ -99,29 +99,65 @@ bool App::OnInit()
 
 void MainFrame::OnTimer(wxTimerEvent &event)
 {
+	hostPanel->hostButton->Disable();
+	hostPanel->inviteButton->Disable();
+	hostPanel->leaveButton->Disable();
 	if (discordnet == nullptr)
 	{
 		return;
 	}
-	auto exception = discordnet->getException();
-	if (exception.has_value())
-	{
+	auto [exception, message, ip] = [&]() {
+		std::lock_guard lg(discordnet->mutex);
+		auto result = std::make_tuple(std::move(discordnet->exception), std::move(discordnet->message), discordnet->address);
+		discordnet->exception.reset();
+		discordnet->message.reset();
+		return result;
+	}();
+	auto conn = discordnet->connection.load();
+	auto receivedBytes = discordnet->receivedBytes.load();
+	auto sentBytes = discordnet->sentBytes.load();
+	auto task = discordnet->task.load();
+	if (exception.has_value()) {
 		wxMessageBox(exception.value().what(), "Error", wxOK | wxICON_ERROR);
 		this->Close();
 		return;
 	}
-	auto message = discordnet->getMessage();
-	if (message.has_value())
-	{
+	if (message.has_value()) {
 		wxMessageBox(message.value(), "Message", wxOK | wxICON_INFORMATION);
 	}
-	auto ip = discordnet->getAddress();
-	auto receivedBytes = discordnet->getReceivedBytes();
-	auto sentBytes = discordnet->getSentBytes();
-	if (ip.has_value())
-	{
-		hostPanel->ipLabel->SetLabelText("IP: " + cidr::format(ip.value()));
+
+	using Task = lpvpn::discordnet::DiscordNet::Task;
+	using Connection = lpvpn::discordnet::DiscordNet::Connection;
+
+
+	switch (conn) {
+	case Connection::Disconnected:
+		hostPanel->ipLabel->SetLabelText("Not connected");
+		hostPanel->hostButton->Enable();
+		break;
+	case Connection::WaitingForIP:
+		hostPanel->ipLabel->SetLabelText("Waiting for IP");
+		hostPanel->leaveButton->Enable();
+		break;
+	case Connection::Connected:
+		assert(ip.has_value());
+		hostPanel->ipLabel->SetLabelText("Connected: " + cidr::format(ip.value()));
+		hostPanel->leaveButton->Enable();
+		break;
+	case Connection::Hosting:
+		assert(ip.has_value());
+		hostPanel->ipLabel->SetLabelText("Hosting: " + cidr::format(ip.value()));
+		hostPanel->inviteButton->Enable();
+		hostPanel->leaveButton->Enable();
+		break;
 	}
+
+	if (task != Task::None) {
+		hostPanel->hostButton->Disable();
+		hostPanel->inviteButton->Disable();
+		hostPanel->leaveButton->Disable();
+	}
+
 	hostPanel->sentBytesLabel->SetLabelText("Sent Bytes: " + std::to_string(sentBytes));
 	hostPanel->receivedBytesLabel->SetLabelText("Received Bytes: " + std::to_string(receivedBytes));
 }
@@ -135,25 +171,35 @@ MainFrame::MainFrame()
 	icon.CopyFromBitmap(iconBitmap);
 	this->SetIcon(icon);
 
-	hostJoinSelectPanel = new HostJoinSelectPanel(this);
-	this->SetClientSize(hostJoinSelectPanel->GetSize());
+	hostPanel = new NetworkPanel(this);
+	this->SetClientSize(hostPanel->GetSize());
 	this->CenterOnScreen();
+	try
+	{
+		discordnet = std::make_unique<lpvpn::discordnet::DiscordNet>();
+		(new wxTimer(this, ID_SYNC_TIMER))->Start(1000);
+	}
+	catch (std::exception& e)
+	{
+		wxMessageBox("Cannot start VPN: " + std::string(e.what()), "Cannot start VPN", wxOK | wxICON_ERROR);
+		this->Close();
+	}
 }
 
 void MainFrame::OnToggleAdvanced(wxCommandEvent &event)
 {
-	hostJoinSelectPanel->advancedSettingsButton->Destroy();
-	auto size = hostJoinSelectPanel->GetSize();
-	size.SetHeight(hostJoinSelectPanel->expandedH);
-	hostJoinSelectPanel->SetSize(size);
-	this->SetClientSize(hostJoinSelectPanel->GetSize());
+	hostPanel->advancedSettingsButton->Destroy();
+	auto size = hostPanel->GetSize();
+	size.SetHeight(hostPanel->expandedH);
+	hostPanel->SetSize(size);
+	this->SetClientSize(hostPanel->GetSize());
 }
 
 void MainFrame::OnHost(wxCommandEvent &event)
 {
 	try
 	{
-		auto cidrStr = std::string(hostJoinSelectPanel->hostIpCidrInput->GetLineText(0));
+		auto cidrStr = std::string(hostPanel->hostIpCidrInput->GetLineText(0));
 		auto hostCidr = cidr::parse(cidrStr.c_str());
 		if (hostCidr.maskBits != 24)
 		{
@@ -165,11 +211,9 @@ void MainFrame::OnHost(wxCommandEvent &event)
 			wxMessageBox("IP address must end in .1", "Cannot start VPN", wxOK | wxICON_ERROR);
 			return;
 		}
-		discordnet = std::make_unique<lpvpn::discordnet::DiscordNet>(hostCidr);
-		hostJoinSelectPanel->Destroy();
-		hostPanel = new NetworkPanel(this, true);
+		discordnet->host(hostCidr);
+		// TODO SIGNAL HOST
 		this->SetClientSize(hostPanel->GetSize());
-		(new wxTimer(this, ID_SYNC_TIMER))->Start(1000);
 	}
 	catch (std::exception &e)
 	{
@@ -182,11 +226,7 @@ void MainFrame::OnJoin(wxCommandEvent &event)
 {
 	try
 	{
-		discordnet = std::make_unique<lpvpn::discordnet::DiscordNet>();
-		hostJoinSelectPanel->Destroy();
-		hostPanel = new NetworkPanel(this, false);
 		this->SetClientSize(hostPanel->GetSize());
-		(new wxTimer(this, ID_SYNC_TIMER))->Start(1000);
 	}
 	catch (std::exception &e)
 	{
@@ -201,69 +241,15 @@ void MainFrame::OnInvite(wxCommandEvent &event)
 {
 	discordnet->invite();
 }
-
-HostJoinSelectPanel::HostJoinSelectPanel(wxWindow *parent)
-	: wxPanel(parent)
+void MainFrame::OnLeave(wxCommandEvent& event)
 {
-	int w = 240, h = 140, padding = 8;
-	int buttonW = 80, buttonH = 80;
-
-	SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
-	SetForegroundColour(wxColour(0xff, 0xff, 0xff));
-
-	this->SetPosition(wxPoint(0, 0));
-	this->SetClientSize(wxSize(w, h));
-
-	auto hostButtonDefaultPng = lpvpn::fs.open("btn-host-default.png");
-	auto hostButtonDefaultImage = wxBitmap::NewFromPNGData(hostButtonDefaultPng.begin(), hostButtonDefaultPng.size()).ConvertToImage().Scale(64, 64);
-	auto hostButtonHoverPng = lpvpn::fs.open("btn-host-hover.png");
-	auto hostButtonHoverImage = wxBitmap::NewFromPNGData(hostButtonHoverPng.begin(), hostButtonHoverPng.size()).ConvertToImage().Scale(64, 64);
-	wxButton *hostButton = new wxButton(this, ID_HOST, "Host VPN", wxPoint(w / 4 - buttonW / 2, h / 2 - buttonH / 2), wxSize(buttonW, buttonH), wxBORDER_NONE);
-	hostButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
-	hostButton->SetForegroundColour(wxColour(0xff, 0xff, 0xff));
-	hostButton->SetBitmap(hostButtonDefaultImage, wxTOP);
-	hostButton->SetBitmapHover(hostButtonHoverImage);
-
-	auto joinButtonDefaultPng = lpvpn::fs.open("btn-join-default.png");
-	auto joinButtonDefaultImage = wxBitmap::NewFromPNGData(joinButtonDefaultPng.begin(), joinButtonDefaultPng.size()).ConvertToImage().Scale(64, 64);
-	auto joinButtonHoverPng = lpvpn::fs.open("btn-join-hover.png");
-	auto joinButtonHoverImage = wxBitmap::NewFromPNGData(joinButtonHoverPng.begin(), joinButtonHoverPng.size()).ConvertToImage().Scale(64, 64);
-	wxButton *joinButton = new wxButton(this, ID_JOIN, "Join VPN", wxPoint(w / 4 * 3 - buttonW / 2, h / 2 - buttonH / 2), wxSize(buttonW, buttonH), wxBORDER_NONE);
-	joinButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
-	joinButton->SetForegroundColour(wxColour(0xff, 0xff, 0xff));
-	joinButton->SetBitmap(joinButtonDefaultImage, wxTOP);
-	joinButton->SetBitmapHover(joinButtonHoverImage);
-
-	advancedSettingsButton = new wxButton(this, ID_TOGGLE_ADVANCED, "Show Advanced Settings", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
-	advancedSettingsButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
-	advancedSettingsButton->SetForegroundColour(wxColour(0xaa, 0xaa, 0xaa));
-	auto advancedSettingsButtonSize = advancedSettingsButton->GetSize();
-	auto advancedSettingsButtonPosition = advancedSettingsButton->GetPosition();
-	advancedSettingsButtonSize.SetWidth(w);
-	advancedSettingsButtonPosition.y = h - advancedSettingsButtonSize.GetHeight() - 4;
-	advancedSettingsButton->SetSize(advancedSettingsButtonSize);
-	advancedSettingsButton->SetPosition(advancedSettingsButtonPosition);
-
-	wxWindow *prev = nullptr;
-
-	auto hostIpCidrText = new wxStaticText(this, wxID_ANY, "Host IP CIDR", wxPoint(padding, h + padding));
-	auto hostIpCidrTextSize = hostIpCidrText->GetSize();
-	hostIpCidrTextSize.SetWidth(w - padding * 2);
-	hostIpCidrText->SetSize(hostIpCidrTextSize);
-	prev = hostIpCidrText;
-
-	hostIpCidrInput = new wxTextCtrl(this, wxID_ANY, "192.168.42.1/24", wxPoint(padding, nextY(prev, padding)));
-	auto hostIpCidrInputSize = hostIpCidrInput->GetSize();
-	hostIpCidrInputSize.SetWidth(w - padding * 2);
-	hostIpCidrInput->SetSize(hostIpCidrInputSize);
-	prev = hostIpCidrInput;
-
-	expandedH = nextY(prev, padding);
+	discordnet->leave();
 }
 
-NetworkPanel::NetworkPanel(wxWindow *parent, bool host) : wxPanel(parent)
+NetworkPanel::NetworkPanel(wxWindow *parent) : wxPanel(parent)
 {
 	int w = 240;
+	int padding = 8;
 
 	SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
 	SetForegroundColour(wxColour(0xff, 0xff, 0xff));
@@ -290,14 +276,53 @@ NetworkPanel::NetworkPanel(wxWindow *parent, bool host) : wxPanel(parent)
 	receivedBytesLabel->SetSize(receivedBytesLabelSize);
 	prev = receivedBytesLabel;
 
-	if (host)
-	{
-		auto inviteButton = new wxButton(this, ID_INVITE, "Invite", wxPoint(8, nextY(prev, 16)));
-		auto inviteButtonSize = inviteButton->GetSize();
-		inviteButtonSize.SetWidth(w - 16);
-		inviteButton->SetSize(inviteButtonSize);
-		prev = inviteButton;
-	}
+	inviteButton = new wxButton(this, ID_INVITE, "Invite", wxPoint(8, nextY(prev, 16)));
+	auto inviteButtonSize = inviteButton->GetSize();
+	inviteButtonSize.SetWidth(w - 16);
+	inviteButton->SetSize(inviteButtonSize);
+	prev = inviteButton;
+
+	hostButton = new wxButton(this, ID_HOST, "Host", wxPoint(8, nextY(prev, 16)));
+	auto hostButtonSize = hostButton->GetSize();
+	hostButtonSize.SetWidth(w - 16);
+	hostButton->SetSize(inviteButtonSize);
+	prev = hostButton;
+
+	leaveButton = new wxButton(this, ID_LEAVE, "Leave", wxPoint(8, nextY(prev, 16)));
+	auto leaveButtonSize = leaveButton->GetSize();
+	leaveButtonSize.SetWidth(w - 16);
+	leaveButton->SetSize(inviteButtonSize);
+	prev = leaveButton;
+
+	advancedSettingsButton = new wxButton(this, ID_TOGGLE_ADVANCED, "Show Advanced Settings", wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+	advancedSettingsButton->SetBackgroundColour(wxColour(0x44, 0x44, 0x44));
+	advancedSettingsButton->SetForegroundColour(wxColour(0xaa, 0xaa, 0xaa));
+	auto advancedSettingsButtonSize = advancedSettingsButton->GetSize();
+	auto advancedSettingsButtonPosition = advancedSettingsButton->GetPosition();
+	advancedSettingsButtonSize.SetWidth(w);
+	advancedSettingsButtonPosition.y = nextY(prev, 16);
+	advancedSettingsButton->SetSize(advancedSettingsButtonSize);
+	advancedSettingsButton->SetPosition(advancedSettingsButtonPosition);
+	prev = advancedSettingsButton;
 
 	this->SetClientSize(wxSize(w, nextY(prev, 8)));
+
+	auto hostIpCidrText = new wxStaticText(this, wxID_ANY, "Host IP CIDR", wxPoint(padding, nextY(prev, padding)));
+	auto hostIpCidrTextSize = hostIpCidrText->GetSize();
+	hostIpCidrTextSize.SetWidth(w - padding * 2);
+	hostIpCidrText->SetSize(hostIpCidrTextSize);
+	prev = hostIpCidrText;
+
+	hostIpCidrInput = new wxTextCtrl(this, wxID_ANY, "192.168.42.1/24", wxPoint(padding, nextY(prev, padding)));
+	auto hostIpCidrInputSize = hostIpCidrInput->GetSize();
+	hostIpCidrInputSize.SetWidth(w - padding * 2);
+	hostIpCidrInput->SetSize(hostIpCidrInputSize);
+	prev = hostIpCidrInput;
+
+
+	hostButton->Disable();
+	inviteButton->Disable();
+	leaveButton->Disable();
+
+	expandedH = nextY(prev, padding);
 }

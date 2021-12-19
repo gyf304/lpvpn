@@ -7,6 +7,7 @@
 #include <thread>
 #include <discord.h>
 #include "adapter.h"
+#include "mutex.h"
 
 #ifdef ERROR
 #undef ERROR
@@ -38,35 +39,45 @@ struct DiscordNetInMessage {
 };
 
 
+
 class DiscordNet {
-	std::thread thread;
-	std::atomic<bool> interrupted = false;
-	std::mutex mutex;
+public:
+	std::jthread thread;
+
+	enum class Task {
+		None,
+		DoInvite,
+		DoHost,
+		DoLeave
+	};
+	enum class Connection {
+		Disconnected,
+		WaitingForIP,
+		Connected,
+		Hosting
+	};
+	util::FastMutex mutex;
+	std::atomic<Connection> connection;
+	std::atomic<Task> task;
 
 	cidr::CIDR hostCidr;
 	std::optional<cidr::CIDR> address;
 	std::optional<std::exception> exception;
 	std::optional<std::string> message;
 
-	bool host;
-	bool shouldInvite = false;
 	std::atomic<uint64_t> sentBytes = 0;
 	std::atomic<uint64_t> receivedBytes = 0;
 
-	void run();
-public:
+	void run(std::stop_token token);
+
 	DiscordNet();
-	DiscordNet(cidr::CIDR hostCidr);
 	~DiscordNet();
 
-	size_t getSentBytes();
-	size_t getReceivedBytes();
+	Connection getConnectionState() const { return connection.load(); }
 
-	std::optional<cidr::CIDR> getAddress();
-	std::optional<std::exception> getException();
-	std::optional<std::string> getMessage();
-
-	void invite();
+	void invite() { auto exp = Task::None; task.compare_exchange_strong(exp, Task::DoInvite); }
+	void host(cidr::CIDR hostCidr) { auto exp = Task::None; this->hostCidr = hostCidr; task.compare_exchange_strong(exp, Task::DoHost); }
+	void leave() { auto exp = Task::None; task.compare_exchange_strong(exp, Task::DoLeave); }
 };
 
 }
