@@ -12,10 +12,10 @@ endif()
 
 set (Wintun_INCLUDE_DIR "${wintun_SOURCE_DIR}/include")
 
-if ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "x64")
+if ("${BINARY_PLATFORM}" STREQUAL "x64")
 	set (Wintun_REDISTRIBUTABLE "${wintun_SOURCE_DIR}/bin/amd64/wintun.dll")
 	set (Wintun_REDISTRIBUTABLE_DIR "${wintun_SOURCE_DIR}/bin/amd64")
-elseif ("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "win32")
+elseif ("${BINARY_PLATFORM}" STREQUAL "win32")
 	set (Wintun_REDISTRIBUTABLE "${wintun_SOURCE_DIR}/bin/x86/wintun.dll")
 	set (Wintun_REDISTRIBUTABLE_DIR "${wintun_SOURCE_DIR}/bin/x86")
 endif()

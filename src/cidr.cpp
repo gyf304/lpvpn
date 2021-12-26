@@ -16,6 +16,16 @@ struct in_addr CIDR::mask() const
 	return addr;
 }
 
+struct CIDR CIDR::getMasked() const
+{
+	auto a = ntohl(addr.s_addr);
+	auto m = ntohl(mask().s_addr);
+	CIDR result;
+	result.addr.s_addr = htonl(a & m);
+	result.maskBits = maskBits;
+	return result;
+}
+
 bool cidr::operator==(const CIDR &a, const CIDR &b) {
 	return a.addr.s_addr == b.addr.s_addr && a.maskBits == b.maskBits;
 }
@@ -30,6 +40,12 @@ CIDR cidr::operator+(const CIDR &cidr, int offset) {
 	}
 	result.addr.s_addr = htonl(newaddr);
 	return result;
+}
+
+unsigned cidr::operator-(const CIDR& cidr1, const CIDR& cidr2) {
+	auto addr1 = ntohl(cidr1.addr.s_addr);
+	auto addr2 = ntohl(cidr2.addr.s_addr);
+	return addr1 - addr2;
 }
 
 CIDR cidr::parse(const char *addr) {
@@ -47,7 +63,7 @@ CIDR cidr::parse(const char *addr) {
 	return cidr;
 }
 
-std::string cidr::format(CIDR &cidr) {
+std::string cidr::format(const CIDR &cidr) {
 	std::string addr(inet_ntoa(cidr.addr));
 	return addr + "/" + std::to_string(cidr.maskBits);
 }

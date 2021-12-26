@@ -7,11 +7,17 @@ message(STATUS "Generator Platform: ${CMAKE_GENERATOR_PLATFORM}")
 
 set(DISCORD_APP_ID 801910914370240553)
 
-set(CMAKE_CXX_STANDARD 17)
 include(FetchContent)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/tmp")
+if (NOT DEFINED BINARY_PLATFORM)
+	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set (BINARY_PLATFORM "x64")
+	elseif (CMAKE_SIZEOF_VOID_P EQUAL 4)
+		set (BINARY_PLATFORM "win32")
+	endif()
+endif()
 
 include(cmake/discord.cmake)
 include(cmake/wintun.cmake)
@@ -32,6 +38,7 @@ cmrc_add_resources(lpvpn-resources WHENCE ${Wintun_REDISTRIBUTABLE_DIR} ${Wintun
 
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp")
 add_executable(lpvpn ${SOURCES} ${DiscordGameSDK_CPP_SOURCES} resources/windows/app.rc)
+set_property(TARGET lpvpn PROPERTY CXX_STANDARD 20)
 target_include_directories(lpvpn PRIVATE ${DiscordGameSDK_CPP_INCLUDE_DIR})
 
 target_compile_definitions(
