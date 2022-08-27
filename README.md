@@ -46,3 +46,4 @@ Open a PR to add more supported games to the list.
 * Minecraft
 * Stardew Valley
 * SWAT 4
+* Half-Life
