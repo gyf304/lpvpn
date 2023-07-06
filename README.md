@@ -1,3 +1,7 @@
+# Deprecated
+## TL;DR: use [PartyLAN](https://github.com/gyf304/partylan)
+Thank you for your interest in LPVPN. However [Discord has deprecated their game SDK](https://discord.com/developers/docs/change-log#gamesdk-feature-deprecation), leaving this project in limbo. I've created another project [PartyLAN](https://github.com/gyf304/partylan) which is the same concept but using Steam instead.
+
 [![github-download-count](https://img.shields.io/github/v/release/gyf304/lpvpn)](../../releases)
 [![github-latest-release](https://img.shields.io/github/downloads/gyf304/lpvpn/total.svg)](../../releases)
 
